@@ -421,10 +421,10 @@ function createRequestCard(request) {
 
     const [datePart, timePart] = request.date_time.split(' ');
     const [day, month, year] = datePart.split('.');
-    const [hours, minutes] = timePart.split(':')
-    const date = new Date(year, month - 1, day, hours, minutes);
+    const [hour, minute] = timePart.split(':');
+    const date = new Date(year, month - 1, day, hour, minute);
 
-    const formattedDate = date.toLocaleDateString('ru-RU', {
+    const formattedDate = date.toLocaleString('ru-RU', {
         day: 'numeric',
         month: 'long',
         hour: '2-digit',
