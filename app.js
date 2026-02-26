@@ -22,6 +22,13 @@ function parseInitData(initData) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔍 DEBUG WebApp:');
+    console.log('  platform:', tg.platform);
+    console.log('  version:', tg.version);
+    console.log('  initData (raw):', tg.initData?.substring(0, 100) + '...');
+    console.log('  initDataUnsafe:', tg.initDataUnsafe);
+    console.log('  user from initDataUnsafe:', tg.initDataUnsafe?.user);
+
     const initData = tg.initData;
 
     if (initData) {
