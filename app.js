@@ -8,7 +8,6 @@ let isAdmin = false;
 document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initForms();
-    loadSchedule();
 
     const user = tg.initDataUnsafe?.user;
     if (user) {
@@ -19,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         console.log('Пользователь:', currentUser);
     }
+
+    showToast('🎸 RRsp готов к работе!', 'success');
 });
 
 function initTabs() {
