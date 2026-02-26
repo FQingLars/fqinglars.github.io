@@ -113,10 +113,6 @@ function handleSubmit(action) {
         document.getElementById(`${action}-form`).reset();
         setMinDateTime();
 
-        setTimeout(() => {
-            tg.close();
-        }, 1000);
-
     } catch (error) {
         console.error('Ошибка отправки:', error);
         showToast('❌ Ошибка отправки данных', 'error');
