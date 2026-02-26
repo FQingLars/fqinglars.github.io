@@ -1,18 +1,7 @@
-// ═══════════════════════════════════════════════════════════════
-// 🎸 RepRasp - Telegram Web App (Flask + Tailscale)
-// ═══════════════════════════════════════════════════════════════
-
-// ───────────────────────────────────────────────────────────────
-// 🔧 КОНФИГУРАЦИЯ
-// ───────────────────────────────────────────────────────────────
-
-// Твой Tailscale URL (из Flask сервера)
 const API_BASE_URL = 'https://wulwa-x99.tailfc3d11.ts.net/api';
 
-// Telegram Web App объект
 const TG = window.Telegram.WebApp;
 
-// Состояние приложения (как dataclass в Python)
 const state = {
     currentTab: 'schedule',
     userId: null,
@@ -23,34 +12,19 @@ const state = {
     requests: [],
     isLoading: false
 };
-
-// ───────────────────────────────────────────────────────────────
-// 🚀 ИНИЦИАЛИЗАЦИЯ
-// ───────────────────────────────────────────────────────────────
-
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎸 RepRasp Web App (Flask + Tailscale) загружается...');
 
-    // Инициализируем Telegram Web App
     initTelegram();
 
-    // Настраиваем обработчики событий
     setupEventListeners();
 
-    // Загружаем расписание при старте
     loadSchedule();
 });
-
-// ───────────────────────────────────────────────────────────────
-// 📱 TELEGRAM WEB APP INIT
-// ───────────────────────────────────────────────────────────────
-
 function initTelegram() {
-    // Обязательно вызываем ready() первым!
     TG.ready();
     TG.expand();
 
-    // Получаем данные пользователя
     const user = TG.initDataUnsafe?.user;
 
     if (user) {
@@ -73,18 +47,13 @@ function initTelegram() {
         }
     }
 
-    // Настраиваем тему Telegram
     setupTheme();
 
-    // Включаем подтверждение закрытия
     TG.enableClosingConfirmation();
 
     showToast(`Добро пожаловать, ${state.userName.split(' ')[0]}! 🎸`);
 }
 
-/**
- * Парсит initData вручную (для обхода багов Desktop)
- */
 function parseInitData(initData) {
     if (!initData) return null;
 
@@ -102,9 +71,6 @@ function parseInitData(initData) {
     return null;
 }
 
-/**
- * Настраивает тему Telegram
- */
 function setupTheme() {
     const theme = TG.themeParams;
 
@@ -125,37 +91,22 @@ function setupTheme() {
     TG.setBackgroundColor(theme.bg_color || '#1c1c1e');
 }
 
-// ───────────────────────────────────────────────────────────────
-// 📡 API ЗАПРОСЫ (Flask бэкенд)
-// ───────────────────────────────────────────────────────────────
-
-/**
- * Универсальная функция для HTTP запросов к Flask API
- *
- * @param {string} endpoint - путь к API (например, '/schedule/list')
- * @param {string} method - HTTP метод (GET, POST)
- * @param {Object} data - данные для отправки (для POST)
- */
 async function apiRequest(endpoint, method = 'GET', data = null) {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    // Формируем заголовки
     const headers = {
         'Content-Type': 'application/json',
     };
 
-    // Добавляем ID пользователя для авторизации
     if (state.userId) {
         headers['X-User-Id'] = state.userId.toString();
     }
 
-    // Формируем опции запроса
     const options = {
         method: method,
         headers: headers,
     };
 
-    // Добавляем тело запроса если есть данные
     if (data) {
         options.body = JSON.stringify(data);
     }
@@ -181,12 +132,7 @@ async function apiRequest(endpoint, method = 'GET', data = null) {
     }
 }
 
-// ───────────────────────────────────────────────────────────────
-// 🎯 ОБРАБОТЧИКИ СОБЫТИЙ
-// ───────────────────────────────────────────────────────────────
-
 function setupEventListeners() {
-    // ─── Переключение вкладок ───
     const tabButtons = document.querySelectorAll('.tab-btn');
     tabButtons.forEach(button => {
         button.addEventListener('click', (event) => {
@@ -195,27 +141,21 @@ function setupEventListeners() {
         });
     });
 
-    // ─── Форма добавления репетиции ───
     const addForm = document.getElementById('add-form');
     addForm.addEventListener('submit', (event) => {
         event.preventDefault();
         handleAddRehearsal(event.target);
     });
 
-    // ─── Форма удаления репетиции ───
     const deleteForm = document.getElementById('delete-form');
     deleteForm.addEventListener('submit', (event) => {
         event.preventDefault();
         handleDeleteRehearsal(event.target);
     });
 
-    // ─── Установка минимальной даты в datetime-local ───
     setMinDateTime();
 }
 
-/**
- * Устанавливает минимальную дату (текущее время) для input datetime-local
- */
 function setMinDateTime() {
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
@@ -228,45 +168,33 @@ function setMinDateTime() {
     if (deleteInput) deleteInput.min = localISOTime;
 }
 
-// ───────────────────────────────────────────────────────────────
-// 🔄 ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
-// ───────────────────────────────────────────────────────────────
-
 function switchTab(tabName) {
     state.currentTab = tabName;
 
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // Убираем active у всех
     tabButtons.forEach(btn => btn.classList.remove('active'));
     tabContents.forEach(content => content.classList.remove('active'));
 
-    // Добавляем active нужным
     const activeButton = document.querySelector(`[data-tab="${tabName}"]`);
     const activeContent = document.getElementById(tabName);
 
     if (activeButton) activeButton.classList.add('active');
     if (activeContent) activeContent.classList.add('active');
 
-    // Загружаем данные для вкладки
     if (tabName === 'schedule') {
         loadSchedule();
     } else if (tabName === 'requests') {
         loadRequests();
     }
 
-    // Вибрация при переключении
     TG.HapticFeedback.selectionChanged();
 }
 
 function switchToFunctions() {
     switchTab('functions');
 }
-
-// ───────────────────────────────────────────────────────────────
-// 📅 ЗАГРУЗКА РАСПИСАНИЯ
-// ───────────────────────────────────────────────────────────────
 
 async function loadSchedule() {
     toggleLoading('schedule-loading', true);
@@ -293,9 +221,6 @@ async function loadSchedule() {
     }
 }
 
-/**
- * Отрисовывает расписание в HTML
- */
 function renderSchedule(schedule) {
     const container = document.getElementById('schedule-list');
     container.innerHTML = '';
@@ -304,9 +229,7 @@ function renderSchedule(schedule) {
         return;
     }
 
-    // Сортируем по дате
     const sorted = schedule.sort((a, b) => {
-        // Парсим дату в формате DD.MM.YYYY HH:MM
         const parseDate = (d) => {
             const [datePart, timePart] = d.split(' ');
             const [day, month, year] = datePart.split('.');
@@ -316,7 +239,6 @@ function renderSchedule(schedule) {
         return parseDate(a.date_time) - parseDate(b.date_time);
     });
 
-    // Группируем по датам
     const grouped = {};
     sorted.forEach(item => {
         const [datePart] = item.date_time.split(' ');
@@ -332,15 +254,12 @@ function renderSchedule(schedule) {
         grouped[dateStr].push(item);
     });
 
-    // Создаём HTML для каждой группы
     for (const [date, items] of Object.entries(grouped)) {
-        // Заголовок даты
         const dateHeader = document.createElement('div');
         dateHeader.className = 'schedule-date-header';
         dateHeader.textContent = date;
         container.appendChild(dateHeader);
 
-        // Карточки репетиций
         items.forEach(item => {
             const card = createRehearsalCard(item);
             container.appendChild(card);
@@ -348,29 +267,20 @@ function renderSchedule(schedule) {
     }
 }
 
-/**
- * Создаёт HTML карточку репетиции
- */
 function createRehearsalCard(item) {
     const card = document.createElement('div');
     card.className = 'rehearsal-card';
 
-    // Парсим время из DD.MM.YYYY HH:MM
     const [datePart, timePart] = item.date_time.split(' ');
 
     card.innerHTML = `
         <div class="card-time">⏰ ${timePart}</div>
         <div class="card-group">🎸 ${escapeHtml(item.group_name)}</div>
-        <div class="card-location">📍 ${escapeHtml(item.location || 'Студия')}</div>
         ${item.admin_only ? '<div class="card-badge">🔒 Админ</div>' : ''}
     `;
 
     return card;
 }
-
-// ───────────────────────────────────────────────────────────────
-// ➕ ДОБАВЛЕНИЕ РЕПЕТИЦИИ
-// ───────────────────────────────────────────────────────────────
 
 async function handleAddRehearsal(form) {
     const groupName = document.getElementById('add-group').value.trim();
@@ -382,7 +292,6 @@ async function handleAddRehearsal(form) {
         return;
     }
 
-    // Конвертируем из ISO формата в DD.MM.YYYY HH:MM
     const isoDate = new Date(datetime);
     const day = String(isoDate.getDate()).padStart(2, '0');
     const month = String(isoDate.getMonth() + 1).padStart(2, '0');
@@ -391,7 +300,6 @@ async function handleAddRehearsal(form) {
     const minutes = String(isoDate.getMinutes()).padStart(2, '0');
     const formattedDateTime = `${day}.${month}.${year} ${hours}:${minutes}`;
 
-    // Проверяем, что дата не в прошлом
     if (isoDate < new Date()) {
         showToast('⚠️ Нельзя добавить репетицию в прошлом!');
         TG.HapticFeedback.notificationOccurred('warning');
@@ -411,17 +319,12 @@ async function handleAddRehearsal(form) {
         TG.HapticFeedback.notificationOccurred('success');
         form.reset();
 
-        // Переключаемся на расписание
         switchTab('schedule');
 
     } catch (error) {
         console.error('Add rehearsal failed:', error);
     }
 }
-
-// ───────────────────────────────────────────────────────────────
-// ➖ УДАЛЕНИЕ РЕПЕТИЦИИ
-// ───────────────────────────────────────────────────────────────
 
 async function handleDeleteRehearsal(form) {
     const groupName = document.getElementById('delete-group').value.trim();
@@ -433,7 +336,6 @@ async function handleDeleteRehearsal(form) {
         return;
     }
 
-    // Конвертируем из ISO формата в DD.MM.YYYY HH:MM
     const isoDate = new Date(datetime);
     const day = String(isoDate.getDate()).padStart(2, '0');
     const month = String(isoDate.getMonth() + 1).padStart(2, '0');
@@ -462,10 +364,6 @@ async function handleDeleteRehearsal(form) {
     }
 }
 
-// ───────────────────────────────────────────────────────────────
-// 📨 ЗАЯВКИ (ADMIN ONLY)
-// ───────────────────────────────────────────────────────────────
-
 async function loadRequests() {
     toggleLoading('requests-loading', true);
     toggleEmpty('requests-empty', false);
@@ -473,7 +371,6 @@ async function loadRequests() {
     toggleList('requests-list', false);
 
     try {
-        // Проверяем админа
         const adminResponse = await apiRequest('/admin/check', 'GET');
         state.isAdmin = adminResponse.is_admin || false;
 
@@ -484,7 +381,6 @@ async function loadRequests() {
             return;
         }
 
-        // Загружаем заявки
         const requestsResponse = await apiRequest('/requests/list', 'GET');
         state.requests = requestsResponse.data || [];
 
@@ -505,9 +401,6 @@ async function loadRequests() {
     }
 }
 
-/**
- * Отрисовывает список заявок
- */
 function renderRequests(requests) {
     const container = document.getElementById('requests-list');
     container.innerHTML = '';
@@ -522,14 +415,10 @@ function renderRequests(requests) {
     });
 }
 
-/**
- * Создаёт карточку заявки
- */
 function createRequestCard(request) {
     const card = document.createElement('div');
     card.className = 'request-card';
 
-    // Парсим дату из DD.MM.YYYY HH:MM
     const [datePart, timePart] = request.date_time.split(' ');
     const [day, month, year] = datePart.split('.');
     const date = new Date(year, month - 1, day);
@@ -564,24 +453,18 @@ function createRequestCard(request) {
     return card;
 }
 
-/**
- * Одобрить заявку
- */
 async function approveRequest(requestId) {
     TG.HapticFeedback.impactOccurred('medium');
 
     try {
         await apiRequest(`/requests/${requestId}/approve`, 'POST');
         showToast('✅ Заявка одобрена!');
-        loadRequests(); // Обновляем список
+        loadRequests();
     } catch (error) {
         console.error('Approve failed:', error);
     }
 }
 
-/**
- * Отклонить заявку
- */
 async function rejectRequest(requestId) {
     TG.HapticFeedback.impactOccurred('medium');
 
@@ -593,10 +476,6 @@ async function rejectRequest(requestId) {
         console.error('Reject failed:', error);
     }
 }
-
-// ───────────────────────────────────────────────────────────────
-// 🎨 UI ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ───────────────────────────────────────────────────────────────
 
 function toggleLoading(elementId, show) {
     const element = document.getElementById(elementId);
@@ -631,9 +510,6 @@ function showToast(message) {
     }, 3000);
 }
 
-/**
- * Экранирует HTML для безопасности (защита от XSS)
- */
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -641,19 +517,11 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ───────────────────────────────────────────────────────────────
-// 🎯 ГЛОБАЛЬНЫЕ ФУНКЦИИ (для onclick в HTML)
-// ───────────────────────────────────────────────────────────────
-
 window.loadSchedule = loadSchedule;
 window.loadRequests = loadRequests;
 window.switchToFunctions = switchToFunctions;
 window.approveRequest = approveRequest;
 window.rejectRequest = rejectRequest;
-
-// ───────────────────────────────────────────────────────────────
-// 🏁 КОНЕЦ СКРИПТА
-// ───────────────────────────────────────────────────────────────
 
 console.log('🎸 RepRasp app.js загружен (Flask + Tailscale)!');
 console.log('💡 API URL:', API_BASE_URL);
