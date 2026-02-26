@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
-// 🎸 RepRasp - Telegram Web App (Без бэкенда, только бот!)
+// 🎸 RepRasp - Telegram Web App (HYBRID ARCHITECTURE)
 // ═══════════════════════════════════════════════════════════════
+// Ларс, теперь мы обходим все ограничения Telegram~
 
 // ───────────────────────────────────────────────────────────────
 // 🔧 КОНФИГУРАЦИЯ
@@ -8,7 +9,7 @@
 
 const TG = window.Telegram.WebApp;
 
-// Состояние приложения (как dataclass в Python)
+// Состояние приложения
 const state = {
     currentTab: 'schedule',
     userId: null,
@@ -17,10 +18,11 @@ const state = {
     isAdmin: false,
     schedule: [],
     requests: [],
-    isLoading: false
+    isLoading: false,
+    isDataSent: false  // Флаг: отправили ли уже данные боту
 };
 
-// Типы действий для бота (как enum в Rust)
+// Типы действий
 const ACTIONS = {
     LOAD_SCHEDULE: 'load_schedule',
     ADD_REHEARSAL: 'add_rehearsal',
@@ -36,61 +38,187 @@ const ACTIONS = {
 // ───────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎸 RepRasp Web App (Bot Architecture) загружается...');
+    console.log('🎸 RepRasp Web App (HYBRID) загружается...');
 
-    initTelegram();
-    setupEventListeners();
-
-    // Загружаем расписание при старте
-    sendToBot({ action: ACTIONS.LOAD_SCHEDULE });
-});
-
-// ───────────────────────────────────────────────────────────────
-// 📱 TELEGRAM WEB APP INIT
-// ───────────────────────────────────────────────────────────────
-
-function initTelegram() {
+    // КРИТИЧЕСКИ ВАЖНО: ready() должен быть вызван ПЕРВЫМ!
     TG.ready();
     TG.expand();
 
-    // Получаем данные пользователя
-    const user = TG.initDataUnsafe.user;
+    // Инициализируем пользователя (с обработкой багов Desktop)
+    initUser();
+
+    // Настраиваем UI
+    setupTheme();
+    setupEventListeners();
+
+    // Проверяем, есть ли данные от бота в URL
+    parseUrlParams();
+
+    // Если нет данных в URL — запрашиваем расписание
+    if (!state.hasUrlData) {
+        toggleLoading('schedule-loading', true);
+        // Для InlineKeyboard: используем MainButton для отправки запроса
+        setupMainButton();
+    }
+});
+
+// ───────────────────────────────────────────────────────────────
+// 👤 ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ (с обработкой багов)
+// ───────────────────────────────────────────────────────────────
+
+/**
+ * Инициализирует данные пользователя
+ *
+ * Баг Telegram Desktop: initDataUnsafe.user может быть null при открытии через ReplyKeyboard
+ * Решение: используем initData с парсингом или запрашиваем у бота
+ */
+function initUser() {
+    console.log('🔍 initData:', TG.initData ? 'есть' : 'нет');
+    console.log('🔍 initDataUnsafe:', TG.initDataUnsafe);
+
+    // Способ 1: initDataUnsafe (может быть null на Desktop)
+    const user = TG.initDataUnsafe?.user;
 
     if (user) {
         state.userId = user.id;
         state.userChatId = user.id;
         state.userName = `${user.first_name} ${user.last_name || ''}`.trim();
+        console.log('✅ Пользователь из initDataUnsafe:', state.userName);
+    } else {
+        // Способ 2: Парсим initData вручную (более надёжно)
+        const userData = parseInitData(TG.initData);
+        if (userData) {
+            state.userId = userData.user_id;
+            state.userChatId = userData.user_id;
+            state.userName = userData.username || userData.first_name || 'User';
+            console.log('✅ Пользователь из initData:', state.userName);
+        } else {
+            // Способ 3: Заглушка (бот должен проверить по chat_id)
+            state.userId = null;
+            state.userChatId = null;
+            state.userName = 'Unknown';
+            console.warn('⚠️ Не удалось получить данные пользователя!');
+            showToast('⚠️ Проверка пользователя...');
+        }
+    }
+}
 
-        // Настраиваем тему Telegram
-        TG.setHeaderColor(TG.themeParams.bg_color || '#1c1c1e');
-        TG.setBackgroundColor(TG.themeParams.bg_color || '#1c1c1e');
+/**
+ * Парсит initData вручную (query string формат)
+ *
+ * @param {string} initData - строка initData от Telegram
+ * @returns {Object|null} распарсенные данные
+ */
+function parseInitData(initData) {
+    if (!initData) return null;
 
-        // Включаем подтверждение для главных кнопок
-        TG.enableClosingConfirmation();
+    try {
+        const params = new URLSearchParams(initData);
+        const userJson = params.get('user');
 
-        showToast(`Добро пожаловать, ${user.first_name}! 🎸`);
+        if (userJson) {
+            return JSON.parse(decodeURIComponent(userJson));
+        }
+    } catch (e) {
+        console.error('Failed to parse initData:', e);
     }
 
-    // Обработчик получения данных от бота (через mainButton или другие события)
-    // Примечание: бот не может напрямую отправить данные в Web App,
-    // но мы можем использовать TG.onEvent для некоторых событий
-
-    TG.ready();
+    return null;
 }
 
 // ───────────────────────────────────────────────────────────────
-// 📡 ОТПРАВКА ДАННЫХ БОТУ (вместо API запросов!)
+// 🎨 ТЕМА И UI
+// ───────────────────────────────────────────────────────────────
+
+function setupTheme() {
+    // Устанавливаем цвета темы Telegram
+    const theme = TG.themeParams;
+
+    if (theme.bg_color) {
+        document.documentElement.style.setProperty('--tg-theme-bg-color', theme.bg_color);
+    }
+    if (theme.text_color) {
+        document.documentElement.style.setProperty('--tg-theme-text-color', theme.text_color);
+    }
+    if (theme.button_color) {
+        document.documentElement.style.setProperty('--tg-theme-button-color', theme.button_color);
+    }
+    if (theme.button_text_color) {
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', theme.button_text_color);
+    }
+
+    TG.setHeaderColor(theme.bg_color || '#1c1c1e');
+    TG.setBackgroundColor(theme.bg_color || '#1c1c1e');
+}
+
+// ───────────────────────────────────────────────────────────────
+// 🔘 MAIN BUTTON (для InlineKeyboard!)
 // ───────────────────────────────────────────────────────────────
 
 /**
- * Отправляет данные боту через Telegram Web App
+ * Настраивает MainButton для отправки данных боту
  *
- * Бот получит это в update.message.web_app_data.data
+ * Это альтернатива sendData() для InlineKeyboard!
+ * MainButton видна всегда и не закрывает App автоматически
+ */
+function setupMainButton() {
+    const mainButton = TG.MainButton;
+
+    // Настраиваем кнопку
+    mainButton.setText('📤 ОТПРАВИТЬ БОТУ');
+    mainButton.textColor = '#ffffff';
+    mainButton.color = '#2481cc';
+
+    // Показываем только когда есть данные для отправки
+    mainButton.hide();
+
+    // Обработчик клика
+    mainButton.onClick(() => {
+        if (state.pendingData) {
+            // Отправляем данные
+            TG.sendData(JSON.stringify(state.pendingData));
+            // Закрываем App (это ожидаемое поведение)
+            TG.close();
+        }
+    });
+}
+
+/**
+ * Показывает MainButton с данными для отправки
+ *
+ * @param {Object} data - данные для отправки
+ */
+function showMainButton(data) {
+    state.pendingData = data;
+
+    const mainButton = TG.MainButton;
+    mainButton.setText('✅ Подтвердить и отправить');
+    mainButton.show();
+
+    // Вибрация
+    TG.HapticFeedback.impactOccurred('light');
+}
+
+function hideMainButton() {
+    const mainButton = TG.MainButton;
+    mainButton.hide();
+    state.pendingData = null;
+}
+
+// ───────────────────────────────────────────────────────────────
+// 📡 ОТПРАВКА ДАННЫХ БОТУ
+// ───────────────────────────────────────────────────────────────
+
+/**
+ * Отправляет данные боту
+ *
+ * ВАЖНО: sendData() ВСЕГДА закрывает Web App!
+ * Это поведение Telegram, его нельзя изменить.
  *
  * @param {Object} data - данные для отправки
  */
 function sendToBot(data) {
-    // Добавляем идентификатор пользователя
+    // Добавляем данные пользователя
     const payload = {
         ...data,
         user_id: state.userId,
@@ -101,102 +229,61 @@ function sendToBot(data) {
 
     console.log('📤 Отправка боту:', payload);
 
-    // sendData отправляет данные боту и закрывает Web App
-    // Но мы можем использовать Telegram.WebApp.sendData() для отправки
+    // Проверяем, есть ли данные пользователя
+    if (!payload.user_id) {
+        showToast('⚠️ Ошибка: пользователь не определён!');
+        TG.HapticFeedback.notificationOccurred('error');
+        return;
+    }
+
+    // Отправляем и закрываем
     TG.sendData(JSON.stringify(payload));
 
-    // Показываем индикатор отправки
-    showToast('📤 Отправлено боту...');
-}
-
-/**
- * Альтернатива: использовать haptic feedback и показать пользователю
- * что данные отправлены, но Web App не закрывается
- *
- * Для этого бот должен отправить новое сообщение с inline keyboard
- * содержащим URL Web App с параметрами
- */
-function sendToBotWithoutClose(data) {
-    const payload = {
-        ...data,
-        user_id: state.userId,
-        chat_id: state.userChatId,
-        user_name: state.userName,
-        timestamp: new Date().toISOString()
-    };
-
-    console.log('📤 Отправка боту (без закрытия):', payload);
-
-    // Используем sendData - это закроет Web App
-    // Альтернатива: бот может polling'ом проверять состояние
-    TG.sendData(JSON.stringify(payload));
-
-    // Вибрация для подтверждения (как haptic feedback в iOS)
+    // Вибрация
     TG.HapticFeedback.notificationOccurred('success');
-}
 
-// ───────────────────────────────────────────────────────────────
-// 🎯 ОБРАБОТЧИКИ СОБЫТИЙ
-// ───────────────────────────────────────────────────────────────
+    // Показываем toast перед закрытием
+    showToast('📤 Отправлено боту...');
 
-function setupEventListeners() {
-    // ─── Переключение вкладок ───
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    tabButtons.forEach(button => {
-        button.addEventListener('click', (event) => {
-            const tabName = event.currentTarget.dataset.tab;
-            switchTab(tabName);
-        });
-    });
-
-    // ─── Форма добавления репетиции ───
-    const addForm = document.getElementById('add-form');
-    addForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        handleAddRehearsal(event.target);
-    });
-
-    // ─── Форма удаления репетиции ───
-    const deleteForm = document.getElementById('delete-form');
-    deleteForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        handleDeleteRehearsal(event.target);
-    });
-
-    // ─── Кнопка обновления расписания ───
-    // (уже есть onclick в HTML)
-
-    // ─── Обработка сообщений от бота (через URL параметры) ───
-    // Бот может перезапустить Web App с параметрами в URL
-    parseUrlParams();
+    // Закрываем через небольшую задержку (для показа toast)
+    setTimeout(() => {
+        TG.close();
+    }, 500);
 }
 
 // ───────────────────────────────────────────────────────────────
 // 🔍 ПАРСИНГ ПАРАМЕТРОВ ОТ БОТА
 // ───────────────────────────────────────────────────────────────
 
+state.hasUrlData = false;
+
 /**
- * Бот может передать данные через URL параметры при открытии Web App
- * Например: https://your.github.io/app.html?data={"action":"schedule_updated"}
+ * Бот передаёт данные через URL параметры
+ *
+ * Формат: https://your.github.io/app.html?tgWebAppData=...&data={...}
  */
 function parseUrlParams() {
     const urlParams = new URLSearchParams(window.location.search);
+
+    // Проверяем data параметр (от бота)
     const dataParam = urlParams.get('data');
 
     if (dataParam) {
         try {
             const data = JSON.parse(decodeURIComponent(dataParam));
+            console.log('📥 Получено из URL:', data);
+            state.hasUrlData = true;
             handleBotResponse(data);
         } catch (e) {
-            console.error('Failed to parse URL data:', e);
+            console.error('Failed to parse URL ', e);
         }
     }
 
-    // Также проверяем hash (альтернативный способ)
-    const hashParam = urlParams.get('hash');
-    if (hashParam) {
-        // Можно использовать для верификации
-        console.log('Hash received:', hashParam);
+    // Также проверяем стандартный tgWebAppData
+    const tgData = urlParams.get('tgWebAppData');
+    if (tgData && !TG.initData) {
+        // Это резервный способ получения initData
+        console.log('tgWebAppData found in URL');
     }
 }
 
@@ -215,12 +302,14 @@ function handleBotResponse(data) {
             toggleLoading('schedule-loading', false);
             toggleEmpty('schedule-empty', state.schedule.length === 0);
             toggleList('schedule-list', state.schedule.length > 0);
-            showToast('📅 Расписание обновлено!');
+            showToast('📅 Расписание загружено!');
             break;
 
         case 'schedule_updated':
             // Перезагружаем расписание
-            sendToBot({ action: ACTIONS.LOAD_SCHEDULE });
+            toggleLoading('schedule-loading', true);
+            // Запрашиваем свежие данные
+            requestSchedule();
             showToast('✅ Расписание обновлено!');
             break;
 
@@ -244,7 +333,7 @@ function handleBotResponse(data) {
             break;
 
         case 'request_processed':
-            sendToBot({ action: ACTIONS.LOAD_REQUESTS });
+            requestRequests();
             showToast(data.success ? '✅ Заявка обработана!' : '❌ Ошибка обработки');
             break;
 
@@ -255,6 +344,46 @@ function handleBotResponse(data) {
 
         default:
             console.log('Неизвестное действие:', data.action);
+    }
+}
+
+// ───────────────────────────────────────────────────────────────
+// 🔄 ЗАПРОС ДАННЫХ ОТ БОТА (через MainButton)
+// ───────────────────────────────────────────────────────────────
+
+/**
+ * Запрашивает расписание у бота
+ *
+ * Для InlineKeyboard: показываем MainButton, пользователь нажимает
+ * Для ReplyKeyboard: sendData() сразу
+ */
+function requestSchedule() {
+    const requestData = {
+        action: ACTIONS.LOAD_SCHEDULE
+    };
+
+    // Проверяем тип открытия (можно определить по наличию initData)
+    if (TG.initData) {
+        // InlineKeyboard: используем MainButton
+        showMainButton(requestData);
+    } else {
+        // ReplyKeyboard: отправляем сразу
+        sendToBot(requestData);
+    }
+}
+
+/**
+ * Запрашивает заявки у бота
+ */
+function requestRequests() {
+    const requestData = {
+        action: ACTIONS.LOAD_REQUESTS
+    };
+
+    if (TG.initData) {
+        showMainButton(requestData);
+    } else {
+        sendToBot(requestData);
     }
 }
 
@@ -280,11 +409,14 @@ function switchTab(tabName) {
     // Загружаем данные для вкладки
     if (tabName === 'schedule') {
         toggleLoading('schedule-loading', true);
-        sendToBot({ action: ACTIONS.LOAD_SCHEDULE });
+        requestSchedule();
     } else if (tabName === 'requests') {
         toggleLoading('requests-loading', true);
-        sendToBot({ action: ACTIONS.LOAD_REQUESTS });
+        requestRequests();
     }
+
+    // Скрываем MainButton при переключении
+    hideMainButton();
 }
 
 function switchToFunctions() {
@@ -297,7 +429,7 @@ function switchToFunctions() {
 
 function loadSchedule() {
     toggleLoading('schedule-loading', true);
-    sendToBot({ action: ACTIONS.LOAD_SCHEDULE });
+    requestSchedule();
 }
 
 function renderSchedule(schedule) {
@@ -379,7 +511,7 @@ function handleAddRehearsal(form) {
         return;
     }
 
-    // Отправляем боту
+    // Отправляем боту (App закроется!)
     sendToBot({
         action: ACTIONS.ADD_REHEARSAL,
         group_name: groupName,
@@ -387,9 +519,6 @@ function handleAddRehearsal(form) {
     });
 
     form.reset();
-
-    // Вибрация подтверждения
-    TG.HapticFeedback.impactOccurred('light');
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -413,7 +542,6 @@ function handleDeleteRehearsal(form) {
     });
 
     form.reset();
-    TG.HapticFeedback.impactOccurred('light');
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -422,7 +550,7 @@ function handleDeleteRehearsal(form) {
 
 function loadRequests() {
     toggleLoading('requests-loading', true);
-    sendToBot({ action: ACTIONS.LOAD_REQUESTS });
+    requestRequests();
 }
 
 function renderRequests(requests) {
@@ -549,4 +677,5 @@ window.handleBotResponse = handleBotResponse;
 // 🏁 КОНЕЦ СКРИПТА
 // ───────────────────────────────────────────────────────────────
 
-console.log('🎸 RepRasp app.js загружен (Bot Architecture)!');
+console.log('🎸 RepRasp app.js загружен (HYBRID ARCHITECTURE)!');
+console.log('💡 Ларс, теперь используй InlineKeyboard для открытия!');
