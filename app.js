@@ -5,21 +5,41 @@ tg.ready();
 let currentUser = null;
 let isAdmin = false;
 
-document.addEventListener('DOMContentLoaded', () => {
-    initTabs();
-    initForms();
+function parseInitData(initData) {
+    const params = new URLSearchParams(initData);
+    const result = {};
 
-    const user = tg.initDataUnsafe?.user;
-    if (user) {
+    for (const [key, value] of params) {
+        try {
+            result[key] = value.startsWith('{') || value.startsWith('[')
+                ? JSON.parse(value)
+                : value;
+        } catch {
+            result[key] = value;
+        }
+    }
+    return result;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const initData = tg.initData;
+
+    if (initData) {
+        const parsed = parseInitData(initData);
         currentUser = {
-            id: user.id,
-            username: user.username || user.first_name,
-            is_premium: user.is_premium
+            id: parsed.user?.id,
+            username: parsed.user?.username,
+            first_name: parsed.user?.first_name,
+            auth_date: parsed.auth_date,
+            hash: parsed.hash
         };
-        console.log('Пользователь:', currentUser);
+    } else {
+        console.warn('⚠️ initData не передан — Web App открыт не через Telegram?');
+        currentUser = { id: 123456789, username: 'test_user' };
     }
 
-    showToast('🎸 RRsp готов к работе!', 'success');
+    initTabs();
+    initForms();
 });
 
 function initTabs() {
