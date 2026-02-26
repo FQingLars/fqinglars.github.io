@@ -6,38 +6,16 @@ let currentUser = null;
 let isAdmin = false;
 
 function getCurrentUser() {
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        return {
-            id: tg.initDataUnsafe.user.id,
-            username: tg.initDataUnsafe.user.username,
-            first_name: tg.initDataUnsafe.user.first_name,
-            auth_date: tg.initDataUnsafe.auth_date,
-            hash: tg.initDataUnsafe.hash
-        };
-    }
+       unsafe = tg.initDataUnsafe;
 
-    return {
-        id: 123456789,
-        username: 'test_user',
-        auth_date: null,
-        hash: null
-    };
-}
+       return {
+            id: unsafe.user.id,
+            username: unsafe.user.username,
+            first_name: unsafe.user.first_name,
+            auth_date: unsafe.auth_date,
+            hash: unsafe.hash
+       };
 
-function parseInitData(initData) {
-    const params = new URLSearchParams(initData);
-    const result = {};
-
-    for (const [key, value] of params) {
-        try {
-            result[key] = value.startsWith('{') || value.startsWith('[')
-                ? JSON.parse(value)
-                : value;
-        } catch {
-            result[key] = value;
-        }
-    }
-    return result;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
