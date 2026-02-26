@@ -421,11 +421,14 @@ function createRequestCard(request) {
 
     const [datePart, timePart] = request.date_time.split(' ');
     const [day, month, year] = datePart.split('.');
-    const date = new Date(year, month - 1, day);
+    const [hours, minutes] = timePart.split(':')
+    const date = new Date(year, month - 1, day, hours, minutes);
 
     const formattedDate = date.toLocaleDateString('ru-RU', {
         day: 'numeric',
-        month: 'long'
+        month: 'long',
+        hours: '2-digit',
+        minutes: '2-digit'
     });
 
     const actionEmoji = request.action === 'add' ? '➕' : '➖';
