@@ -1,0 +1,476 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --tg-bg: var(--tg-theme-bg-color, #1c1c1e);
+    --tg-text: var(--tg-theme-text-color, #ffffff);
+    --tg-hint: var(--tg-theme-hint-color, #999999);
+    --tg-link: var(--tg-theme-link-color, #3390ec);
+    --tg-button: var(--tg-theme-button-color, #3390ec);
+    --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+    --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #2c2c2e);
+    --tg-header-bg: var(--tg-theme-header-bg-color, #1c1c1e);
+
+    --success: #34c759;
+    --danger: #ff3b30;
+    --warning: #ff9500;
+    --card-bg: #2c2c2e;
+    --border-radius: 12px;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--tg-bg);
+    color: var(--tg-text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 16px;
+    min-height: 100vh;
+}
+
+.header {
+    text-align: center;
+    padding: 20px 0;
+    margin-bottom: 16px;
+}
+
+.header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: var(--tg-hint);
+    font-size: 14px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: var(--tg-secondary-bg);
+    padding: 6px;
+    border-radius: var(--border-radius);
+}
+
+.tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--tg-hint);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    background: var(--tg-button);
+    color: var(--tg-button-text);
+}
+
+.tab-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tab-icon {
+    font-size: 20px;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--tg-secondary-bg);
+    border: none;
+    border-radius: 8px;
+    color: var(--tg-link);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.refresh-btn:hover {
+    background: rgba(51, 144, 236, 0.2);
+}
+
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.schedule-item {
+    background: var(--card-bg);
+    padding: 16px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s;
+}
+
+.schedule-item:hover {
+    transform: translateY(-2px);
+}
+
+.schedule-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.schedule-time {
+    color: var(--tg-hint);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.schedule-badge {
+    background: var(--tg-button);
+    color: var(--tg-button-text);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.functions-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.function-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.card-icon {
+    font-size: 28px;
+}
+
+.card-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.function-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tg-hint);
+}
+
+.form-group input {
+    padding: 12px 16px;
+    background: var(--tg-bg);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    color: var(--tg-text);
+    font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--tg-button);
+}
+
+.form-group input[type="datetime-local"] {
+    color-scheme: dark;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--tg-button);
+    color: var(--tg-button-text);
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-full {
+    width: 100%;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.request-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.request-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.request-type.add {
+    background: rgba(52, 199, 89, 0.2);
+    color: var(--success);
+}
+
+.request-type.delete {
+    background: rgba(255, 59, 48, 0.2);
+    color: var(--danger);
+}
+
+.request-user {
+    color: var(--tg-hint);
+    font-size: 13px;
+}
+
+.request-details {
+    background: var(--tg-bg);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.request-details p {
+    margin: 4px 0;
+    font-size: 14px;
+}
+
+.request-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.request-actions .btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 14px;
+}
+
+/* ===== Loading & Empty States ===== */
+.loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--tg-hint);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--tg-secondary-bg);
+    border-top-color: var(--tg-button);
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--tg-hint);
+}
+
+.empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    font-size: 16px;
+    margin: 8px 0;
+}
+
+.small-text {
+    font-size: 14px;
+    color: var(--tg-hint);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===== Toast Notifications ===== */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--tg-secondary-bg);
+    color: var(--tg-text);
+    padding: 12px 24px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-size: 14px;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+    max-width: 90%;
+    text-align: center;
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast.success {
+    background: var(--success);
+    color: white;
+}
+
+.toast.error {
+    background: var(--danger);
+    color: white;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+    .container {
+        padding: 12px;
+    }
+
+    .header h1 {
+        font-size: 24px;
+    }
+
+    .tab-text {
+        font-size: 11px;
+    }
+
+    .function-card {
+        padding: 16px;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --tg-bg: #f2f2f7;
+        --tg-text: #000000;
+        --tg-secondary-bg: #ffffff;
+        --card-bg: #ffffff;
+        --tg-hint: #8e8e93;
+    }
+
+    .form-group input {
+        background: #ffffff;
+        border-color: #e5e5ea;
+    }
+
+    .schedule-item,
+    .function-card,
+    .request-card {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+}
