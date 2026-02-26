@@ -427,8 +427,8 @@ function createRequestCard(request) {
     const formattedDate = date.toLocaleDateString('ru-RU', {
         day: 'numeric',
         month: 'long',
-        hours: '2-digit',
-        minutes: '2-digit'
+        hour: '2-digit',
+        minute: '2-digit'
     });
 
     const actionEmoji = request.action === 'add' ? '➕' : '➖';
