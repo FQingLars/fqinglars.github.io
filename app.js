@@ -5,6 +5,25 @@ tg.ready();
 let currentUser = null;
 let isAdmin = false;
 
+function getCurrentUser() {
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        return {
+            id: tg.initDataUnsafe.user.id,
+            username: tg.initDataUnsafe.user.username,
+            first_name: tg.initDataUnsafe.user.first_name,
+            auth_date: tg.initDataUnsafe.auth_date,
+            hash: tg.initDataUnsafe.hash
+        };
+    }
+
+    return {
+        id: 123456789,
+        username: 'test_user',
+        auth_date: null,
+        hash: null
+    };
+}
+
 function parseInitData(initData) {
     const params = new URLSearchParams(initData);
     const result = {};
@@ -22,31 +41,11 @@ function parseInitData(initData) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🔍 DEBUG WebApp:');
-    console.log('  platform:', tg.platform);
-    console.log('  version:', tg.version);
-    console.log('  initData (raw):', tg.initData?.substring(0, 100) + '...');
-    console.log('  initDataUnsafe:', tg.initDataUnsafe);
-    console.log('  user from initDataUnsafe:', tg.initDataUnsafe?.user);
-
-    const initData = tg.initData;
-
-    if (initData) {
-        const parsed = parseInitData(initData);
-        currentUser = {
-            id: parsed.user?.id,
-            username: parsed.user?.username,
-            first_name: parsed.user?.first_name,
-            auth_date: parsed.auth_date,
-            hash: parsed.hash
-        };
-    } else {
-        console.warn('⚠️ initData не передан — Web App открыт не через Telegram?');
-        currentUser = { id: 123456789, username: 'test_user' };
-    }
+    currentUser = getCurrentUser();
 
     initTabs();
     initForms();
+    loadSchedule();
 });
 
 function initTabs() {
